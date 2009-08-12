@@ -1,0 +1,22 @@
+#include "application.hh"
+
+#include <algorithm>
+#include <optimization/Messages/messages.hh>
+#include <optimization/Constants/constants.hh>
+#include <os/os.hh>
+#include <fstream>
+#include <base/base.hh>
+
+#include <readline/readline.h>
+#include <readline/history.h>
+
+#include <libxml++/libxml++.h>
+#include <libxml/xinclude.h>
+#include <giomm.h>
+
+using namespace std;
+using namespace network;
+using namespace command;
+using namespace optimization::messages;
+using namespace optimization;
+using namespace base;

@@ -1,0 +1,11 @@
+#& -l --verbose -I. --args "-g -Wall -Werror -fPIC -I$PACKETEER_INSTALL_PATH/include"
+
+glibmm.h	`pkg-config --libs --cflags glibmm-2.4`
+network/network.hh	`pkg-config --libs --cflags libjessevdk-network-0.1`
+base/base.hh	`pkg-config --libs --cflags libjessevdk-base-0.1`
+os/os.hh	`pkg-config --libs --cflags libjessevdk-os-0.1`
+common/common.hh	`pkg-config --libs --cflags liboptimization-common-0.1`
+libxml++/libxml++.h	`pkg-config --libs --cflags libxml++-2.6`
+
+readline/readline.h	-lreadline
+readline/history.h	-lreadline
