@@ -1,8 +1,8 @@
 include Makefile.am.inc
 
-opticonfdir = $(sysconfdir)
+opticonfdir = $(datadir)/opticommand
 opticonf_DATA = \
-	opticommand.conf
+	opticommand.conf.ex
 
 EXTRA_DIST = \
 	$(opticonf_DATA)

@@ -16,7 +16,9 @@ AC_PROG_MAKE_SET
 AC_CONFIG_HEADERS(config.h)
 AM_MAINTAINER_MODE
 
-AC_CHECK_LIB([readline],[readline])
+AC_MSG_CHECKING([for libreadline])
+
+AC_CHECK_LIB([readline],[readline],[], [AC_MSG_ERROR([could not find libreadline])])
 
 PKG_CHECK_MODULES(PACKAGE_OPTICOMMAND, [
 	liboptimization-0.1
