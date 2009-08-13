@@ -1,0 +1,6 @@
+#include "config.hh"
+
+#include <optimization/Constants/constants.hh>
+
+using namespace std;
+using namespace opticommand;

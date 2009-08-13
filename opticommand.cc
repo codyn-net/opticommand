@@ -4,13 +4,11 @@
 
 using namespace command;
 
-int main(int argc, char const *argv[])
+int main(int argc, char *argv[])
 {
 	Glib::init();
 	Glib::RefPtr<Glib::MainLoop> loop = Glib::MainLoop::create();
 	
-	//base::Debug::enable(base::Debug::Domain::Network);
-
 	Application application(argc, argv);
 	
 	return application.run(loop) ? 0 : 1;

@@ -2,24 +2,18 @@
 
 void Application::parseUri(string &host, string &port) 
 {
-	if (d_arguments.size() <= 1)
-		return;
-
-	string::size_type stype;
-	string uri = d_arguments[1];
-	stype = uri.find(":");
-
-	if (stype != string::npos)
+	vector<string> parts = String(opticommand::Config::instance().commandUri).split(":", 2);
+	host = parts[0];
+	
+	if (parts.size() == 1)
 	{
-		host = uri.substr(0, stype - 1);
-		port = uri.substr(stype + 1);
+		stringstream s;
+		s << Constants::CommandPort;
+		
+		port = s.str();
 	}
 	else
 	{
-		if (uri != "")
-			host = uri;
-		
-		if (d_arguments.size() > 2 && d_arguments[2] != "")
-			port = d_arguments[2];
+		port = parts[1];
 	}
 }

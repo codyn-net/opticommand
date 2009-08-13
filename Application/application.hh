@@ -14,7 +14,7 @@ namespace command
 	{
 		struct Commands
 		{
-			enum 
+			enum Values
 			{
 				AddJob = 0,
 				RemoveJob,
@@ -44,6 +44,7 @@ namespace command
 		
 		bool d_running;
 		bool d_waitForResponse;
+		Glib::ustring d_sendCommand;
 		
 		Command d_commands[Commands::NumCommands];
 
@@ -58,7 +59,7 @@ namespace command
 				static std::string Yellow;
 			};
 
-			Application(int argc, char const **argv);
+			Application(int argc, char **argv);
 			
 			bool run(Glib::RefPtr<Glib::MainLoop> loop);
 		private:
@@ -71,6 +72,7 @@ namespace command
 			
 			void initCommands();
 			bool parseCommand(std::string const &line, std::string &data);
+			void parseArguments(int &argc, char **&argv);
 			
 			bool handleAddJob(std::vector<std::string> const &args, std::string &data);
 			bool handleRemoveJob(std::vector<std::string> const &args, std::string &data);
@@ -85,6 +87,9 @@ namespace command
 			
 			std::ostream &prompt() const;
 			bool sendCommand(optimization::messages::command::Command &command, std::string &data);
+			
+			bool interactiveMode(std::string const &host, std::string const &port);
+			bool directMode(std::string const &host, std::string const &port);
 	};
 }
 

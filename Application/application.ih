@@ -14,6 +14,8 @@
 #include <libxml/xinclude.h>
 #include <giomm.h>
 
+#include "Config/config.hh"
+
 using namespace std;
 using namespace network;
 using namespace command;

@@ -1,11 +1,7 @@
 #include "application.ih"
 
-Application::Application(int argc, char const **argv) 
+Application::Application(int argc, char **argv) 
 {
-	d_arguments.resize(argc);
-
-	for (int i = 0; i < argc; ++i)
-		d_arguments[i] = argv[i];
-	
+	parseArguments(argc, argv);
 	initCommands();
 }
