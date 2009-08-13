@@ -25,8 +25,10 @@ opticommand_SOURCES = \
 	Application/printjob.cc \
 	Application/application.cc \
 	Application/parseuri.cc \
+	Application/handlechain.cc \
 	Application/commandconstructor1.cc \
 	Application/ondata.cc \
+	Application/handlequit.cc \
 	Application/showjobinfo.cc \
 	Application/commandconstructor2.cc \
 	Application/interactivemode.cc \
@@ -40,8 +42,6 @@ opticommand_SOURCES = \
 	Application/parsearguments.cc \
 	Application/onclosed.cc \
 	Application/directmode.cc \
-	Application/handlechain.cc \
-	Application/handlequit.cc \
 	Config/statics.cc \
 	Config/initialize.cc \
 	Config/config.cc \
