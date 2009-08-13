@@ -46,3 +46,11 @@ opticommand_SOURCES = \
 	Config/initialize.cc \
 	Config/config.cc \
 	Config/instance.cc
+
+noinst_HEADERS = \
+	Application/application.ih \
+	Application/application.hh \
+	Config/config.ih \
+	Config/config.hh
+
+EXTRA_DIST = $(noinst_HEADERS)
