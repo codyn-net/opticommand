@@ -22,13 +22,24 @@ void Application::onData(os::FileDescriptor::DataArgs &args)
 					showListJobs(r.listjobs());
 				break;
 				default:
-					cout << r.message() << endl;
+					if (r.message() != "")
+					{
+						cout << r.message() << endl;
+					}
 				break;
 			}
+			
+			if (r.type() == optimization::messages::command::AddJob)
+			{
+				d_chain = "";
+			}
+			
+			d_lastResult = true;
 		}
 		else
 		{
 			cout << Ansi::Red << Ansi::Bold << r.message() << Ansi::None << endl;
+			d_lastResult = false;
 		}
 		
 		d_waitForResponse = false;

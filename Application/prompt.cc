@@ -2,5 +2,12 @@
 
 ostream &Application::prompt() const
 {
-	return (cout << Ansi::Yellow << ">>> " << Ansi::None);
+	if (d_hasTerminal)
+	{
+		return (cout << Ansi::Yellow << ">>> " << Ansi::None);
+	}
+	else
+	{
+		return cout;
+	}
 }

@@ -12,7 +12,10 @@ bool Application::interactiveMode(string const &host, string const &port)
 	os::Signals::install();
 	os::Signals::onInterrupt.addData(*this, &Application::onInterrupt, d_main);
 
-	prompt() << Ansi::Blue << "* Connecting to master at " << Ansi::Green << host << ":" << port << Ansi::None << endl;
+	if (d_hasTerminal)
+	{
+		prompt() << Ansi::Blue << "* Connecting to master at " << Ansi::Green << host << ":" << port << Ansi::None << endl;
+	}
 	
 	/* Connect to master */
 	d_client = Client::Tcp(host, port);
@@ -22,7 +25,7 @@ bool Application::interactiveMode(string const &host, string const &port)
 		prompt() << Ansi::Red << "* Could not connect to master" << Ansi::None << endl;
 		return false;
 	}
-	else
+	else if (d_hasTerminal)
 	{
 		prompt() << Ansi::Blue << "* Welcome, ready to receive orders" << Ansi::None << endl;
 	}
@@ -32,9 +35,14 @@ bool Application::interactiveMode(string const &host, string const &port)
 	
 	Timer timer;
 	bool warned = false;
+	d_lastResult = true;
 	
 	string historyfile = Glib::get_user_config_dir() + "/.optcmd_history";
-	read_history(historyfile.c_str());
+	
+	if (d_hasTerminal)
+	{
+		read_history(historyfile.c_str());
+	}
 	
 	d_running = true;
 	d_waitForResponse = false;
@@ -44,26 +52,48 @@ bool Application::interactiveMode(string const &host, string const &port)
 	{
 		if (!d_waitForResponse)
 		{
-			string pr = RL_PROMPT_START_IGNORE + Ansi::Yellow + RL_PROMPT_END_IGNORE + ">>> " + RL_PROMPT_START_IGNORE + Application::Ansi::None + RL_PROMPT_END_IGNORE;
-			char *line_read = readline(pr.c_str());
-		
-			if (line_read && *line_read)
-			{
-				string data;
-				bool ret = parseCommand(line_read, data);
+			string line;
 			
-				cout << (!ret ? (Ansi::Red + Ansi::Bold) : "") << data << Ansi::None << endl;
-				add_history(line_read);
-			}
-		
-			if (line_read)
+			if (d_hasTerminal)
 			{
-				free(line_read);
+				string pr = RL_PROMPT_START_IGNORE + Ansi::Yellow + RL_PROMPT_END_IGNORE + ">>> " + (d_chain != "" ? "[" + d_chain + "] " : "") + RL_PROMPT_START_IGNORE + Application::Ansi::None + RL_PROMPT_END_IGNORE;
+				char *line_read = readline(pr.c_str());
+				
+				if (line_read)
+				{
+					line = line_read;
+					free(line_read);
+				}
+				else
+				{
+					d_running = false;
+					cout << endl;
+				}
 			}
 			else
 			{
-				d_running = false;
-				cout << endl;
+				if (!getline(cin, line))
+				{
+					d_running = false;
+				}
+			} 
+		
+			if (line != "")
+			{
+				string data;
+				bool ret = parseCommand(line, data);
+			
+				if (data != "")
+				{
+					cout << (!ret ? (Ansi::Red + Ansi::Bold) : "") << data << Ansi::None << endl;
+				}
+				
+				d_lastResult = ret;
+
+				if (d_hasTerminal)
+				{
+					add_history(line.c_str());
+				}
 			}
 			
 			timer.mark();
@@ -78,8 +108,12 @@ bool Application::interactiveMode(string const &host, string const &port)
 		d_main->get_context()->iteration(false);
 	}
 	
-	write_history(historyfile.c_str());
+	if (d_hasTerminal)
+	{
+		write_history(historyfile.c_str());
+	}
+
 	d_client.onClosed().remove(*this, &Application::onClosed);
 	
-	return true;
+	return d_hasTerminal ? true : d_lastResult;
 }

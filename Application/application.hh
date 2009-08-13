@@ -20,6 +20,7 @@ namespace command
 				RemoveJob,
 				ListJobs,
 				JobInfo,
+				Chain,
 				Help,
 				NumCommands			
 			};
@@ -44,8 +45,12 @@ namespace command
 		
 		bool d_running;
 		bool d_waitForResponse;
+		bool d_hasTerminal;
+		bool d_lastResult;
+
 		Glib::ustring d_sendCommand;
 		Glib::ustring d_user;
+		Glib::ustring d_chain;
 		
 		Command d_commands[Commands::NumCommands];
 
@@ -83,6 +88,7 @@ namespace command
 			
 			void showJobInfo(optimization::messages::command::JobInfoResponse const &response);
 			void showListJobs(optimization::messages::command::ListJobsResponse const &response);
+			bool handleChain(std::vector<std::string> const &args, std::string &data);
 			
 			void printJob(optimization::messages::command::Job const &job);
 			

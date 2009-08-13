@@ -50,6 +50,11 @@ bool Application::handleAddJob(vector<string> const &args, string &data)
 	{
 		cmd.mutable_addjob()->set_user(d_user);
 	}
-
+	
+	if (d_chain != "")
+	{
+		cmd.mutable_addjob()->set_chain(d_chain);
+	}
+	
 	return sendCommand(cmd, data);
 }

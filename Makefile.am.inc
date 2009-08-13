@@ -40,6 +40,7 @@ opticommand_SOURCES = \
 	Application/parsearguments.cc \
 	Application/onclosed.cc \
 	Application/directmode.cc \
+	Application/handlechain.cc \
 	Config/statics.cc \
 	Config/initialize.cc \
 	Config/config.cc \

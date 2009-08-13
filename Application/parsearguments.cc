@@ -24,9 +24,16 @@ void Application::parseArguments(int &argc, char **&argv)
 	Glib::OptionEntry userent;
 	userent.set_long_name("user");
 	userent.set_short_name('u');
-	userent.set_description("Used to determine where to save data");
+	userent.set_description("Used to determine where to save data (send mode)");
 	
 	group.add_entry(userent, d_user);
+	
+	Glib::OptionEntry chain;
+	chain.set_long_name("chain");
+	chain.set_short_name('c');
+	chain.set_description("Chain job after previously added job (send mode)");
+	
+	group.add_entry(chain, d_chain);
 	
 	Glib::OptionContext context;
 	
