@@ -21,8 +21,10 @@ namespace command
 				ListJobs,
 				JobInfo,
 				Chain,
+				Quit,
+				Exit,
 				Help,
-				NumCommands			
+				NumCommands
 			};
 		};
 		
@@ -89,6 +91,7 @@ namespace command
 			void showJobInfo(optimization::messages::command::JobInfoResponse const &response);
 			void showListJobs(optimization::messages::command::ListJobsResponse const &response);
 			bool handleChain(std::vector<std::string> const &args, std::string &data);
+			bool handleQuit(std::vector<std::string> const &args, std::string &data);
 			
 			void printJob(optimization::messages::command::Job const &job);
 			
