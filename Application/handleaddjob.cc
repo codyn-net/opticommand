@@ -45,6 +45,11 @@ bool Application::handleAddJob(vector<string> const &args, string &data)
 	{
 		cmd.mutable_addjob()->set_token(args[2]);
 	}
+	
+	if (d_user != "")
+	{
+		cmd.mutable_addjob()->set_user(d_user);
+	}
 
 	return sendCommand(cmd, data);
 }

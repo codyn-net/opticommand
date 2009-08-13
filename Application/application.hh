@@ -45,6 +45,7 @@ namespace command
 		bool d_running;
 		bool d_waitForResponse;
 		Glib::ustring d_sendCommand;
+		Glib::ustring d_user;
 		
 		Command d_commands[Commands::NumCommands];
 

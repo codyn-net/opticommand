@@ -20,6 +20,13 @@ void Application::parseArguments(int &argc, char **&argv)
 	send.set_description("Send single command");
 	
 	group.add_entry(send, d_sendCommand);
+
+	Glib::OptionEntry userent;
+	userent.set_long_name("user");
+	userent.set_short_name('u');
+	userent.set_description("Used to determine where to save data");
+	
+	group.add_entry(userent, d_user);
 	
 	Glib::OptionContext context;
 	
