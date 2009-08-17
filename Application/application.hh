@@ -1,6 +1,7 @@
 #ifndef __COMMAND_APPLICATION_H__
 #define __COMMAND_APPLICATION_H__
 
+#include <giomm.h>
 #include <network/network.hh>
 #include <glibmm.h>
 #include <vector>
