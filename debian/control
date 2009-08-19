@@ -17,5 +17,7 @@ Package: opticommand
 Section: science
 Architecture: any
 Depends: ${shlibs:Depends}, ${misc:Depends}
+Conflicts: liboptimization0-applications-opticommand
+Replaces: liboptimization0-applications-opticommand
 Description: liboptimization command application
  Command application for liboptimization
