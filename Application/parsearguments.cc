@@ -30,7 +30,7 @@ void Application::parseArguments(int &argc, char **&argv)
 	
 	Glib::OptionEntry chain;
 	chain.set_long_name("chain");
-	chain.set_short_name('c');
+	chain.set_short_name('h');
 	chain.set_description("Chain job after previously added job (send mode)");
 	
 	group.add_entry(chain, d_chain);
