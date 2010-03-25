@@ -608,17 +608,39 @@ Application::ParseUri(string &host,
 	}
 }
 
+string
+Application::FormatDate(time_t t) const
+{
+	char buffer[1024];
+	size_t size;
+
+	if (t == 0)
+	{
+		return "";
+	}
+
+	size = strftime(buffer, sizeof(buffer) - 1, "%A %d %B, %H:%M:%S", localtime(&t));
+	buffer[size] = '\0';
+
+	return buffer;
+}
+
 void
 Application::PrintJob(command::Job const &job)
 {
-	time_t t = static_cast<time_t>(job.started());
+	time_t started = static_cast<time_t>(job.started());
+	time_t updated = static_cast<time_t>(job.lastupdate());
+
+	double pgs = job.progress() * 100;
 
 	cout << "  [" << job.name() << "] (" << job.id() << ")" << endl
-	     << "    * User:     " << job.user() << endl
-	     << "    * Progress: " << job.progress() << endl
-	     << "    * Started:  " << (t == 0 ? "" : ctime(&t)) << endl
-	     << "    * Priority: " << job.priority() << endl
-	     << "    * Tasks:    " << job.taskssuccess() << "/" << job.tasksfailed() << endl;
+	     << "    * User:         " << job.user() << endl
+	     << "    * Priority:     " << job.priority() << endl << endl
+	     << "    * Started:      " << FormatDate(started) << endl
+	     << "    * Last update:  " << FormatDate(updated) << endl
+	     << "    * Progress:     " << fixed << setprecision(2) << pgs << " %" << endl << endl
+	     << "    * Avg. Runtime: " << job.runtime() << endl
+	     << "    * Tasks:        " << job.taskssuccess() << "/" << job.tasksfailed() << endl;
 }
 
 ostream &

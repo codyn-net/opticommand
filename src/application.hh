@@ -79,6 +79,7 @@ namespace opticommand
 			Application(int argc, char **argv);
 
 			std::string AskToken();
+			std::string FormatDate(time_t t) const;
 
 			bool OnInterrupt(Glib::RefPtr<Glib::MainLoop> loop);
 
