@@ -55,7 +55,11 @@ Application::Application(int argc, char **argv)
 {
 	d_hasTerminal = isatty(0);
 
-	if (!d_hasTerminal)
+	gcry_check_version(NULL);
+
+	ParseArguments(argc, argv);
+
+	if (!d_hasTerminal || Config::Instance().DisableColors)
 	{
 		Ansi::None = "";
 		Ansi::Bold = "";
@@ -65,9 +69,6 @@ Application::Application(int argc, char **argv)
 		Ansi::Blue = "";
 	}
 
-	gcry_check_version(NULL);
-
-	ParseArguments(argc, argv);
 	InitCommands();
 }
 
@@ -108,17 +109,28 @@ Application::DirectMode(string const &host,
 	d_client.OnData().Add(*this, &Application::OnData);
 	d_client.OnClosed().Add(*this, &Application::OnClosed);
 
-	string data;
-	bool ret = ParseCommand(d_sendCommand, data);
+	vector<string> cmds = String(d_sendCommand).Split(";");
 
-	if (!ret)
+	for (vector<string>::iterator iter = cmds.begin(); iter != cmds.end(); ++iter)
 	{
-		cerr << data << endl;
-		return false;
-	}
-	else
-	{
-		cout << data << endl;
+		string data;
+		bool ret = ParseCommand(String(*iter).Strip(), data);
+
+		if (!ret)
+		{
+			cerr << data << endl;
+			return false;
+		}
+
+		while (d_waitForResponse)
+		{
+			d_main->get_context()->iteration(false);
+		}
+
+		if (!d_lastResult)
+		{
+			return false;
+		}
 	}
 
 	d_client.OnClosed().Remove(*this, &Application::OnClosed);
@@ -438,12 +450,15 @@ Application::InteractiveMode(string const &host,
 void
 Application::OnClosed(int fd)
 {
-	rl_replace_line("", 0);
-	rl_redisplay();
+	if (d_sendCommand == "")
+	{
+		rl_replace_line("", 0);
+		rl_redisplay();
 
-	cout << endl;
+		cout << endl;
 
-	Prompt() << Ansi::Red << "* Connection with master closed" << Ansi::None;
+		Prompt() << Ansi::Red << "* Connection with master closed" << Ansi::None;
+	}
 
 	d_running = false;
 	d_waitForResponse = false;
@@ -497,7 +512,7 @@ Application::OnData(FileDescriptor::DataArgs &args)
 		}
 		else
 		{
-			cout << Ansi::Red << Ansi::Bold << r.message() << Ansi::None << endl;
+			cerr << Ansi::Red << Ansi::Bold << r.message() << Ansi::None << endl;
 			d_lastResult = false;
 		}
 
@@ -546,6 +561,20 @@ Application::ParseArguments(int    &argc,
 	send.set_description("Send single command");
 
 	group.add_entry(send, d_sendCommand);
+
+	Glib::OptionEntry nocolors;
+	nocolors.set_long_name("no-colors");
+	nocolors.set_short_name('n');
+	nocolors.set_description("Disable colors");
+
+	group.add_entry(nocolors, config.DisableColors);
+
+	Glib::OptionEntry raw;
+	raw.set_long_name("raw");
+	raw.set_short_name('r');
+	raw.set_description("Raw");
+
+	group.add_entry(raw, config.Raw);
 
 	Glib::OptionContext context;
 
@@ -632,15 +661,31 @@ Application::PrintJob(command::Job const &job)
 	time_t updated = static_cast<time_t>(job.lastupdate());
 
 	double pgs = job.progress() * 100;
+	string bullet = "  * " + Ansi::Red;
 
-	cout << "  [" << job.name() << "] (" << job.id() << ")" << endl
-	     << "    * User:         " << job.user() << endl
-	     << "    * Priority:     " << job.priority() << endl << endl
-	     << "    * Started:      " << FormatDate(started) << endl
-	     << "    * Last update:  " << FormatDate(updated) << endl
-	     << "    * Progress:     " << fixed << setprecision(2) << pgs << " %" << endl << endl
-	     << "    * Avg. Runtime: " << job.runtime() << endl
-	     << "    * Tasks:        " << job.taskssuccess() << "/" << job.tasksfailed() << endl;
+	bool raw = Config::Instance().Raw;
+
+	if (!raw)
+	{
+		cout << "[" << job.id() << "] " << Ansi::Blue << job.name() << Ansi::None << " (" << Ansi::Green << job.user() << Ansi::None << ")" << endl
+		     << bullet << "Priority:     " << Ansi::None << job.priority() << endl << endl
+		     << bullet << "Started:      " << Ansi::None << FormatDate(started) << endl
+		     << bullet << "Last update:  " << Ansi::None << FormatDate(updated) << endl
+		     << bullet << "Progress:     " << Ansi::None << fixed << setprecision(2) << pgs << " %" << endl << endl
+		     << bullet << "Runtime:      " << Ansi::None << job.runtime() << endl
+		     << bullet << "Tasks:        " << Ansi::None << job.taskssuccess() << "/" << job.tasksfailed() << endl;
+	}
+	else
+	{
+		cout << job.id() << "\t" << job.name() << "\t" << job.user() << endl
+		     << "priority\t" << job.priority() << endl
+		     << "started\t" << started << endl
+		     << "lastupdate\t" << updated << endl
+		     << "progress\t" << job.progress() << endl
+		     << "runtime\t" << job.runtime() << endl
+		     << "taskssuccess\t" << job.taskssuccess() << endl
+		     << "tasksfailed\t" << job.tasksfailed() << endl;
+	}
 }
 
 ostream &
@@ -702,11 +747,23 @@ Application::ShowInfo(command::InfoResponse const &response)
 void
 Application::ShowList(command::ListResponse const &response)
 {
+	bool raw = Config::Instance().Raw;
+
 	for (int i = 0; i < response.jobs_size(); ++i)
 	{
 		optimization::messages::command::Job const &job = response.jobs(i);
 
-		cout << "[" << job.id() << "] " << job.name() << " (" << job.user() << ")" << endl;
+		if (!raw)
+		{
+			cout << "[" << job.id() << "] "
+			     << Ansi::Blue << job.name() << Ansi::None
+			     << " (" << Ansi::Green << job.user() << Ansi::None
+			     << ")" << endl;
+		}
+		else
+		{
+			cout << job.id() << "\t" << job.name() << "\t" << job.user() << endl;
+		}
 	}
 }
 
@@ -717,7 +774,7 @@ Application::Authenticate(command::AuthenticateResponse const &response)
 
 	if (gcry_md_open(&hd, GCRY_MD_SHA1, 0) != GPG_ERR_NO_ERROR)
 	{
-		cout << Ansi::Red << Ansi::Bold << "Could not create crypted" << Ansi::None << endl;
+		cerr << Ansi::Red << Ansi::Bold << "Could not create crypted" << Ansi::None << endl;
 	}
 
 	string passwd = AskToken();
