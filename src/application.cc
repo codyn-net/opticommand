@@ -9,6 +9,11 @@
 
 #include <readline/readline.h>
 #include <readline/history.h>
+#include <gcrypt.h>
+
+#include <termios.h>
+#include <unistd.h>
+#include <iomanip>
 
 #include "config.hh"
 
@@ -27,6 +32,25 @@ string Application::Ansi::Green = "\e[32m";
 string Application::Ansi::Yellow = "\e[33m";
 string Application::Ansi::Blue = "\e[34m";
 
+Application *Application::s_instance = 0;
+
+Application &
+Application::Instance()
+{
+	return *s_instance;
+}
+
+Application &
+Application::Initialize(int argc, char **argv)
+{
+	if (!s_instance)
+	{
+		s_instance = new Application(argc, argv);
+	}
+
+	return *s_instance;
+}
+
 Application::Application(int argc, char **argv)
 {
 	d_hasTerminal = isatty(0);
@@ -40,6 +64,8 @@ Application::Application(int argc, char **argv)
 		Ansi::Yellow = "";
 		Ansi::Blue = "";
 	}
+
+	gcry_check_version(NULL);
 
 	ParseArguments(argc, argv);
 	InitCommands();
@@ -182,12 +208,37 @@ Application::HandleSetPriority(vector<string> const &args,
 	cmd.set_type(command::SetPriority);
 	cmd.mutable_setpriority()->set_id(id);
 
+	idstream.clear();
 	idstream.str(args[1]);
+
 	idstream >> priority;
 
 	cmd.mutable_setpriority()->set_priority(priority);
 
 	return SendCommand(cmd, data);
+}
+
+string
+Application::AskToken()
+{
+	struct termios t;
+
+	tcgetattr(0, &t);
+	t.c_lflag &= ~ECHO;
+	tcsetattr(0, 0, &t);
+
+	string line;
+
+	cout << "Password: " << flush;
+
+	getline(cin, line);
+
+	t.c_lflag |= ECHO;
+	tcsetattr(0, 0, &t);
+
+	cout << endl;
+
+	return line;
 }
 
 bool
@@ -197,9 +248,9 @@ Application::HandleAuthenticate(vector<string> const &args,
 	command::Command cmd;
 
 	cmd.set_type(command::Authenticate);
-	cmd.mutable_authenticate();
+	cmd.mutable_authenticate()->set_token("");
 
-	d_authenticateToken = args[0];
+	d_waitForResponse = true;
 
 	return SendCommand(cmd, data);
 }
@@ -211,7 +262,7 @@ void Application::InitCommands()
 
 	d_commands[Commands::Kill] = Command("kill", &Application::HandleKill, 1, 1);
 	d_commands[Commands::SetPriority] = Command("set-priority", &Application::HandleSetPriority, 2, 2);
-	d_commands[Commands::Authenticate] = Command("authenticate", &Application::HandleAuthenticate, 1, 1);
+	d_commands[Commands::Authenticate] = Command("authenticate", &Application::HandleAuthenticate, 0, 0);
 
 	d_commands[Commands::Quit] = Command("quit", &Application::HandleQuit, 0, 0);
 	d_commands[Commands::Exit] = Command("exit", &Application::HandleQuit, 0, 0);
@@ -219,11 +270,52 @@ void Application::InitCommands()
 	d_commands[Commands::Help] = Command("help", &Application::HandleHelp, 0, 1);
 }
 
+char **
+Application::CompleteCommand(string const &text)
+{
+	char **matches = NULL;
+
+	vector<char *> cmds;
+
+	for (size_t i = 0; i < Commands::NumCommands; ++i)
+	{
+		Command &c = d_commands[i];
+
+		if (c.Handler && String(c.Name).StartsWith(text))
+		{
+			cmds.push_back(strdup(c.Name.c_str()));
+		}
+	}
+
+	matches = (char **)malloc(sizeof(char *) * (cmds.size() + 1));
+
+	for (size_t i = 0; i < cmds.size(); ++i)
+	{
+		matches[i] = cmds[i];
+	}
+
+	matches[cmds.size()] = NULL;
+	return matches;
+}
+
 static int
 periodic_readline()
 {
 	Glib::MainContext::get_default()->iteration(false);
 	return 0;
+}
+
+char **
+try_command_completion (char const *text, int start, int end)
+{
+	char **matches = NULL;
+
+	if (start == 0)
+	{
+		matches = Application::Instance().CompleteCommand(text);
+	}
+
+	return matches;
 }
 
 bool
@@ -267,7 +359,9 @@ Application::InteractiveMode(string const &host,
 
 	d_running = true;
 	d_waitForResponse = false;
+
 	rl_event_hook = periodic_readline;
+	rl_attempted_completion_function = try_command_completion;
 
 	while (d_running)
 	{
@@ -374,10 +468,22 @@ Application::OnData(FileDescriptor::DataArgs &args)
 			switch (r.type())
 			{
 				case command::Info:
-					ShowInfo(r.info());
+					if (r.has_info())
+					{
+						ShowInfo(r.info());
+					}
 				break;
 				case command::List:
-					ShowList(r.list());
+					if (r.has_list())
+					{
+						ShowList(r.list());
+					}
+				break;
+				case command::Authenticate:
+					if (r.has_authenticate())
+					{
+						Authenticate(r.authenticate());
+					}
 				break;
 				default:
 					if (r.message() != "")
@@ -578,6 +684,41 @@ Application::ShowList(command::ListResponse const &response)
 	{
 		optimization::messages::command::Job const &job = response.jobs(i);
 
-		cout << "[" << job.id() << "] " << job.name() << "(" << job.user() << ")" << endl;
+		cout << "[" << job.id() << "] " << job.name() << " (" << job.user() << ")" << endl;
 	}
+}
+
+void
+Application::Authenticate(command::AuthenticateResponse const &response)
+{
+	gcry_md_hd_t hd;
+
+	if (gcry_md_open(&hd, GCRY_MD_SHA1, 0) != GPG_ERR_NO_ERROR)
+	{
+		cout << Ansi::Red << Ansi::Bold << "Could not create crypted" << Ansi::None << endl;
+	}
+
+	string passwd = AskToken();
+	string challenge = response.challenge();
+
+	gcry_md_write(hd, passwd.c_str(), strlen(passwd.c_str()));
+	gcry_md_write(hd, challenge.c_str(), strlen(challenge.c_str()));
+
+	uint8_t *ptr = gcry_md_read(hd, GCRY_MD_SHA1);
+	stringstream token;
+
+	for (size_t i = 0; i < gcry_md_get_algo_dlen(GCRY_MD_SHA1); ++i)
+	{
+		token << hex << setfill('0') << setw(2) << (unsigned short)ptr[i];
+	}
+
+	gcry_md_close(hd);
+
+	string data;
+	command::Command cmd;
+
+	cmd.set_type(command::Authenticate);
+	cmd.mutable_authenticate()->set_token(token.str());
+
+	SendCommand(cmd, data);
 }

@@ -9,7 +9,5 @@ int main(int argc, char *argv[])
 	Glib::init();
 	Glib::RefPtr<Glib::MainLoop> loop = Glib::MainLoop::create();
 	
-	Application application(argc, argv);
-	
-	return application.Run(loop) ? 0 : 1;
+	return Application::Initialize(argc, argv).Run(loop) ? 0 : 1;
 }

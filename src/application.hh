@@ -56,6 +56,8 @@ namespace opticommand
 
 		Command d_commands[Commands::NumCommands];
 
+		static Application *s_instance;
+
 		public:
 			struct Ansi
 			{
@@ -67,10 +69,17 @@ namespace opticommand
 				static std::string Yellow;
 			};
 
-			Application(int argc, char **argv);
+			static Application &Initialize(int argc, char **argv);
+			static Application &Instance();
 
 			bool Run(Glib::RefPtr<Glib::MainLoop> loop);
+
+			char **CompleteCommand(std::string const &text);
 		private:
+			Application(int argc, char **argv);
+
+			std::string AskToken();
+
 			bool OnInterrupt(Glib::RefPtr<Glib::MainLoop> loop);
 
 			void ParseUri(std::string &host, std::string &port);
@@ -93,6 +102,7 @@ namespace opticommand
 
 			void ShowInfo(optimization::messages::command::InfoResponse const &response);
 			void ShowList(optimization::messages::command::ListResponse const &response);
+			void Authenticate(optimization::messages::command::AuthenticateResponse const &response);
 
 			void PrintJob(optimization::messages::command::Job const &job);
 
