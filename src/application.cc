@@ -1,0 +1,583 @@
+#include "application.hh"
+
+#include <algorithm>
+#include <optimization/messages.hh>
+#include <optimization/constants.hh>
+#include <jessevdk/os/os.hh>
+#include <fstream>
+#include <jessevdk/base/base.hh>
+
+#include <readline/readline.h>
+#include <readline/history.h>
+
+#include "config.hh"
+
+using namespace std;
+using namespace jessevdk::network;
+using namespace opticommand;
+using namespace optimization::messages;
+using namespace optimization;
+using namespace jessevdk::base;
+using namespace jessevdk::os;
+
+string Application::Ansi::None = "\e[0m";
+string Application::Ansi::Bold = "\e[1m";
+string Application::Ansi::Red = "\e[31m";
+string Application::Ansi::Green = "\e[32m";
+string Application::Ansi::Yellow = "\e[33m";
+string Application::Ansi::Blue = "\e[34m";
+
+Application::Application(int argc, char **argv)
+{
+	d_hasTerminal = isatty(0);
+
+	if (!d_hasTerminal)
+	{
+		Ansi::None = "";
+		Ansi::Bold = "";
+		Ansi::Red = "";
+		Ansi::Green = "";
+		Ansi::Yellow = "";
+		Ansi::Blue = "";
+	}
+
+	ParseArguments(argc, argv);
+	InitCommands();
+}
+
+Application::Command::Command()
+:
+	Name(""),
+	Handler(0)
+{
+}
+
+
+Application::Command::Command(string const                &name,
+                              Application::CommandHandler  handler,
+                              int                          minargs,
+                              int                          maxargs)
+:
+	Name(name),
+	Handler(handler)
+{
+	ArgsRange[0] = minargs;
+	ArgsRange[1] = maxargs;
+}
+
+
+bool
+Application::DirectMode(string const &host,
+                        string const &port)
+
+{
+	d_client = Client::Tcp(host, port);
+
+	if (!d_client)
+	{
+		cerr << "Could not connect to master" << endl;
+		return false;
+	}
+
+	d_client.OnData().Add(*this, &Application::OnData);
+	d_client.OnClosed().Add(*this, &Application::OnClosed);
+
+	string data;
+	bool ret = ParseCommand(d_sendCommand, data);
+
+	if (!ret)
+	{
+		cerr << data << endl;
+		return false;
+	}
+	else
+	{
+		cout << data << endl;
+	}
+
+	d_client.OnClosed().Remove(*this, &Application::OnClosed);
+	return true;
+}
+
+bool
+Application::HandleHelp(vector<string> const &args,
+                        string               &data)
+{
+	stringstream s;
+
+	s << endl;
+
+	for (size_t i = 0; i < Commands::NumCommands; ++i)
+	{
+		s << d_commands[i].Name << endl;
+	}
+
+	data = s.str();
+	return true;
+}
+
+bool
+Application::HandleInfo(vector<string> const &args,
+                        string               &data)
+{
+	command::Command cmd;
+	stringstream idstream(args[0]);
+	size_t id;
+
+	idstream >> id;
+
+	cmd.set_type(command::Info);
+	cmd.mutable_info()->set_id(id);
+
+	return SendCommand(cmd, data);
+}
+
+bool
+Application::HandleList(vector<string> const &args,
+                        string               &data)
+{
+	command::Command cmd;
+
+	cmd.set_type(command::List);
+	cmd.mutable_list();
+
+	return SendCommand(cmd, data);
+}
+
+bool
+Application::HandleQuit(vector<string> const &args,
+                        string               &data)
+{
+	d_running = false;
+	return true;
+}
+
+bool
+Application::HandleKill(vector<string> const &args,
+                        string               &data)
+{
+	command::Command cmd;
+	stringstream idstream(args[0]);
+	size_t id;
+
+	idstream >> id;
+
+	cmd.set_type(command::Kill);
+	cmd.mutable_kill()->set_id(id);
+
+	return SendCommand(cmd, data);
+}
+
+bool
+Application::HandleSetPriority(vector<string> const &args,
+                               string               &data)
+{
+	command::Command cmd;
+	stringstream idstream(args[0]);
+	size_t id;
+	double priority;
+
+	idstream >> id;
+
+	cmd.set_type(command::SetPriority);
+	cmd.mutable_setpriority()->set_id(id);
+
+	idstream.str(args[1]);
+	idstream >> priority;
+
+	cmd.mutable_setpriority()->set_priority(priority);
+
+	return SendCommand(cmd, data);
+}
+
+bool
+Application::HandleAuthenticate(vector<string> const &args,
+                                string               &data)
+{
+	command::Command cmd;
+
+	cmd.set_type(command::Authenticate);
+	cmd.mutable_authenticate();
+
+	d_authenticateToken = args[0];
+
+	return SendCommand(cmd, data);
+}
+
+void Application::InitCommands()
+{
+	d_commands[Commands::List] = Command("list", &Application::HandleList, 0, 0);
+	d_commands[Commands::Info] = Command("info", &Application::HandleInfo, 1, 1);
+
+	d_commands[Commands::Kill] = Command("kill", &Application::HandleKill, 1, 1);
+	d_commands[Commands::SetPriority] = Command("set-priority", &Application::HandleSetPriority, 2, 2);
+	d_commands[Commands::Authenticate] = Command("authenticate", &Application::HandleAuthenticate, 1, 1);
+
+	d_commands[Commands::Quit] = Command("quit", &Application::HandleQuit, 0, 0);
+	d_commands[Commands::Exit] = Command("exit", &Application::HandleQuit, 0, 0);
+
+	d_commands[Commands::Help] = Command("help", &Application::HandleHelp, 0, 1);
+}
+
+static int
+periodic_readline()
+{
+	Glib::MainContext::get_default()->iteration(false);
+	return 0;
+}
+
+bool
+Application::InteractiveMode(string const &host,
+                             string const &port)
+{
+	Signals::Install();
+	Signals::OnInterrupt.AddData(*this, &Application::OnInterrupt, d_main);
+
+	if (d_hasTerminal)
+	{
+		Prompt() << Ansi::Blue << "* Connecting to master at " << Ansi::Green << host << ":" << port << Ansi::None << endl;
+	}
+
+	/* Connect to master */
+	d_client = Client::Tcp(host, port);
+
+	if (!d_client)
+	{
+		Prompt() << Ansi::Red << "* Could not connect to master" << Ansi::None << endl;
+		return false;
+	}
+	else if (d_hasTerminal)
+	{
+		Prompt() << Ansi::Blue << "* Welcome, ready to receive orders" << Ansi::None << endl;
+	}
+
+	d_client.OnData().Add(*this, &Application::OnData);
+	d_client.OnClosed().Add(*this, &Application::OnClosed);
+
+	Timer timer;
+	bool warned = false;
+	d_lastResult = true;
+
+	string historyfile = Glib::get_user_config_dir() + "/.optcmd_history";
+
+	if (d_hasTerminal)
+	{
+		read_history(historyfile.c_str());
+	}
+
+	d_running = true;
+	d_waitForResponse = false;
+	rl_event_hook = periodic_readline;
+
+	while (d_running)
+	{
+		if (!d_waitForResponse)
+		{
+			string line;
+
+			if (d_hasTerminal)
+			{
+				string pr = RL_PROMPT_START_IGNORE + Ansi::Yellow + RL_PROMPT_END_IGNORE +
+				            ">>> " + RL_PROMPT_START_IGNORE + Application::Ansi::None + RL_PROMPT_END_IGNORE;
+
+				char *line_read = readline(pr.c_str());
+
+				if (line_read)
+				{
+					line = line_read;
+					free(line_read);
+				}
+				else
+				{
+					d_running = false;
+					cout << endl;
+				}
+			}
+			else
+			{
+				if (!getline(cin, line))
+				{
+					d_running = false;
+				}
+			}
+
+			if (line != "")
+			{
+				string data;
+				bool ret = ParseCommand(line, data);
+
+				if (data != "")
+				{
+					cout << (!ret ? (Ansi::Red + Ansi::Bold) : "") << data << Ansi::None << endl;
+				}
+
+				d_lastResult = ret;
+
+				if (d_hasTerminal)
+				{
+					add_history(line.c_str());
+				}
+			}
+
+			timer.Mark();
+			warned = false;
+		}
+		else if (timer.Since() > 5 && !warned)
+		{
+			cout << "* Waiting for response... (^C to break)" << flush;
+			warned = true;
+		}
+
+		d_main->get_context()->iteration(false);
+	}
+
+	if (d_hasTerminal)
+	{
+		write_history(historyfile.c_str());
+	}
+
+	d_client.OnClosed().Remove(*this, &Application::OnClosed);
+
+	return d_hasTerminal ? true : d_lastResult;
+}
+
+void
+Application::OnClosed(int fd)
+{
+	rl_replace_line("", 0);
+	rl_redisplay();
+
+	cout << endl;
+
+	Prompt() << Ansi::Red << "* Connection with master closed" << Ansi::None;
+
+	d_running = false;
+	d_waitForResponse = false;
+
+	rl_done = 1;
+}
+
+void
+Application::OnData(FileDescriptor::DataArgs &args)
+{
+	vector<command::Response> response;
+	vector<command::Response>::iterator iter;
+
+	Messages::Extract(args, response);
+
+	for (iter = response.begin(); iter != response.end(); ++iter)
+	{
+		command::Response &r = *iter;
+
+		if (r.status())
+		{
+			switch (r.type())
+			{
+				case command::Info:
+					ShowInfo(r.info());
+				break;
+				case command::List:
+					ShowList(r.list());
+				break;
+				default:
+					if (r.message() != "")
+					{
+						cout << r.message() << endl;
+					}
+				break;
+			}
+
+			d_lastResult = true;
+		}
+		else
+		{
+			cout << Ansi::Red << Ansi::Bold << r.message() << Ansi::None << endl;
+			d_lastResult = false;
+		}
+
+		d_waitForResponse = false;
+	}
+}
+
+bool
+Application::OnInterrupt(Glib::RefPtr<Glib::MainLoop> loop)
+{
+	if (!rl_line_buffer || *rl_line_buffer == '\0')
+	{
+		d_running = false;
+		rl_done = 1;
+	}
+	else
+	{
+		rl_replace_line("", 0);
+		rl_redisplay();
+
+		d_waitForResponse = false;
+	}
+
+	return true;
+}
+
+void
+Application::ParseArguments(int    &argc,
+                            char **&argv)
+{
+	// Parse config file first
+	opticommand::Config &config = opticommand::Config::Initialize(CONFDIR "/opticommand.conf");
+
+	Glib::OptionGroup group("Command", "Optimization Commander");
+
+	Glib::OptionEntry command;
+	command.set_long_name("command");
+	command.set_short_name('c');
+	command.set_description("Command uri");
+
+	group.add_entry(command, config.CommandUri);
+
+	Glib::OptionEntry send;
+	send.set_long_name("send");
+	send.set_short_name('s');
+	send.set_description("Send single command");
+
+	group.add_entry(send, d_sendCommand);
+
+	Glib::OptionContext context;
+
+	context.set_main_group(group);
+	context.parse(argc, argv);
+}
+
+bool
+Application::ParseCommand(string const &line,
+                          string       &data)
+{
+	vector<string> parts = String(line).Split(" ");
+
+	string cmd = parts[0];
+	parts.erase(parts.begin());
+
+	int numArgs = parts.size();
+
+	for (size_t i = 0; i < Commands::NumCommands; ++i)
+	{
+		Command &c = d_commands[i];
+
+		if (!c.Handler || c.Name != cmd)
+		{
+			continue;
+		}
+
+		if (numArgs < c.ArgsRange[0] || (numArgs > c.ArgsRange[1] && c.ArgsRange[1] != -1))
+		{
+			data = "Invalid number of arguments";
+			return false;
+		}
+		else
+		{
+			return (this->*(c.Handler))(parts, data);
+		}
+	}
+
+	data = string("Command not found (") + cmd + ")";
+	return false;
+}
+
+void
+Application::ParseUri(string &host,
+                      string &port)
+{
+	vector<string> parts = String(opticommand::Config::Instance().CommandUri).Split(":", 2);
+	host = parts[0];
+
+	if (parts.size() == 1)
+	{
+		stringstream s;
+		s << Constants::CommandPort;
+
+		port = s.str();
+	}
+	else
+	{
+		port = parts[1];
+	}
+}
+
+void
+Application::PrintJob(command::Job const &job)
+{
+	time_t t = static_cast<time_t>(job.started());
+
+	cout << "  [" << job.name() << "] (" << job.id() << ")" << endl
+	     << "    * User:     " << job.user() << endl
+	     << "    * Progress: " << job.progress() << endl
+	     << "    * Started:  " << (t == 0 ? "" : ctime(&t)) << endl
+	     << "    * Priority: " << job.priority() << endl
+	     << "    * Tasks:    " << job.taskssuccess() << "/" << job.tasksfailed() << endl;
+}
+
+ostream &
+Application::Prompt() const
+{
+	if (d_hasTerminal)
+	{
+		return (cout << Ansi::Yellow << ">>> " << Ansi::None);
+	}
+	else
+	{
+		return cout;
+	}
+}
+
+bool
+Application::Run(Glib::RefPtr<Glib::MainLoop> loop)
+{
+	string host;
+	string port;
+
+	ParseUri(host, port);
+	d_main = loop;
+
+	if (d_sendCommand != "")
+	{
+		return DirectMode(host, port);
+	}
+	else
+	{
+		return InteractiveMode(host, port);
+	}
+}
+
+bool
+Application::SendCommand(command::Command &command,
+                         string           &data)
+{
+	string serialized;
+
+	if (!optimization::Messages::Create(command, serialized))
+	{
+		data = "Could not serialize command...";
+		return false;
+	}
+
+	d_waitForResponse = true;
+	d_client.Write(serialized);
+
+	return true;
+}
+
+void
+Application::ShowInfo(command::InfoResponse const &response)
+{
+	PrintJob(response.job());
+}
+
+void
+Application::ShowList(command::ListResponse const &response)
+{
+	for (int i = 0; i < response.jobs_size(); ++i)
+	{
+		optimization::messages::command::Job const &job = response.jobs(i);
+
+		cout << "[" << job.id() << "] " << job.name() << "(" << job.user() << ")" << endl;
+	}
+}

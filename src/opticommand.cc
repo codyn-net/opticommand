@@ -1,8 +1,8 @@
-#include "Application/application.hh"
-#include <base/base.hh>
+#include "application.hh"
+
 #include <glibmm.h>
 
-using namespace command;
+using namespace opticommand;
 
 int main(int argc, char *argv[])
 {
@@ -11,5 +11,5 @@ int main(int argc, char *argv[])
 	
 	Application application(argc, argv);
 	
-	return application.run(loop) ? 0 : 1;
+	return application.Run(loop) ? 0 : 1;
 }
