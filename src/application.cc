@@ -758,11 +758,11 @@ Application::ShowList(command::ListResponse const &response)
 			cout << "[" << job.id() << "] "
 			     << Ansi::Blue << job.name() << Ansi::None
 			     << " (" << Ansi::Green << job.user() << Ansi::None
-			     << ")" << endl;
+			     << ") " << setprecision(2) << (job.progress() * 100) << " %" << endl;
 		}
 		else
 		{
-			cout << job.id() << "\t" << job.name() << "\t" << job.user() << endl;
+			cout << job.id() << "\t" << job.name() << "\t" << job.user() << "\t" << job.progress() << endl;
 		}
 	}
 }
