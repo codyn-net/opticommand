@@ -549,7 +549,7 @@ Application::ParseArguments(int    &argc,
 	Glib::OptionGroup group("Command", "Optimization Commander");
 
 	Glib::OptionEntry command;
-	command.set_long_name("command");
+	command.set_long_name("command-uri");
 	command.set_short_name('c');
 	command.set_description("Command uri");
 
