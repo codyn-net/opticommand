@@ -1,9 +1,11 @@
-AC_INIT(opticommand, 0.2)
+AC_INIT(opticommand, 2.0)
 
 AM_INIT_AUTOMAKE([subdir-objects])
 
 AC_CONFIG_MACRO_DIR([m4])
 AC_PROG_LIBTOOL
+
+m4_ifdef([AM_SILENT_RULES],[AM_SILENT_RULES([yes])])
 
 AC_ISC_POSIX
 AC_STDC_HEADERS
@@ -13,18 +15,14 @@ AC_HEADER_STDC
 AC_PROG_INSTALL
 AC_PROG_MAKE_SET
 
+AC_CHECK_LIB([gcrypt],[gcry_check_version],[],[AC_MSG_ERROR(Could not find gcrypt)])
+AC_CHECK_LIB([readline],[rl_redisplay],[],[AC_MSG_ERROR(Could not find readline)])
+
 AC_CONFIG_HEADERS(config.h)
 AM_MAINTAINER_MODE
 
-AC_MSG_CHECKING([for libreadline])
-
-AC_CHECK_LIB([readline],[readline],[], [AC_MSG_ERROR([could not find libreadline])])
-
 PKG_CHECK_MODULES(PACKAGE_OPTICOMMAND, [
-	liboptimization-0.1
-	libjessevdk-0.1
-	libxml++-2.6
-	giomm-2.4
+	liboptimization-2.0
 ])
 
 AC_SUBST(PACKAGE_OPTICOMMAND_CFLAGS)
@@ -32,5 +30,5 @@ AC_SUBST(PACKAGE_OPTICOMMAND_LIBS)
 
 AC_OUTPUT(
 Makefile
-
+src/Makefile
 )
