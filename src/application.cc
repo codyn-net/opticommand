@@ -317,7 +317,7 @@ periodic_readline()
 	return 0;
 }
 
-char **
+static char **
 try_command_completion (char const *text, int start, int end)
 {
 	char **matches = NULL;
