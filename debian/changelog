@@ -1,10 +1,16 @@
-opticommand (0.2-1) $DIST; urgency=low
+opticommand (2.0-1) UNRELEASED; urgency=low
+
+  * New upstream release 2.0 
+
+ -- Jesse van den Kieboom <jvanden@grijpc10.epfl.ch>  Fri, 09 Apr 2010 16:04:29 +0200
+
+opticommand (0.2-1) UNRELEASED; urgency=low
 
   * New upstream release 0.2 
 
  -- Jesse van den Kieboom <jvanden@grijpc10.epfl.ch>  Tue, 08 Sep 2009 16:51:12 +0200
 
-opticommand (0.1-1) $DIST; urgency=low
+opticommand (0.1-1) UNRELEASED; urgency=low
 
   * Initial release
 
