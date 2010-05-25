@@ -1,4 +1,4 @@
-AC_INIT(opticommand, 2.0)
+AC_INIT(opticommand, 2.1)
 
 AM_INIT_AUTOMAKE([subdir-objects])
 
@@ -27,6 +27,10 @@ PKG_CHECK_MODULES(PACKAGE_OPTICOMMAND, [
 
 AC_SUBST(PACKAGE_OPTICOMMAND_CFLAGS)
 AC_SUBST(PACKAGE_OPTICOMMAND_LIBS)
+
+if test "x$USE_MAINTAINER_MODE" = "xyes"; then
+PACKAGE_OPTICOMMAND_CFLAGS="$PACKAGE_OPTICOMMAND_CFLAGS -Wall -Werror -Wuninitialized -Wmissing-declarations"
+fi
 
 AC_OUTPUT(
 Makefile

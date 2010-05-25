@@ -317,7 +317,7 @@ periodic_readline()
 	return 0;
 }
 
-char **
+static char **
 try_command_completion (char const *text, int start, int end)
 {
 	char **matches = NULL;
@@ -549,11 +549,11 @@ Application::ParseArguments(int    &argc,
 	Glib::OptionGroup group("Command", "Optimization Commander");
 
 	Glib::OptionEntry command;
-	command.set_long_name("command-uri");
-	command.set_short_name('c');
-	command.set_description("Command uri");
+	command.set_long_name("master");
+	command.set_short_name('m');
+	command.set_description("The master hostname[:port] to connect to");
 
-	group.add_entry(command, config.CommandUri);
+	group.add_entry(command, config.MasterAddress);
 
 	Glib::OptionEntry send;
 	send.set_long_name("send");
@@ -621,7 +621,7 @@ void
 Application::ParseUri(string &host,
                       string &port)
 {
-	vector<string> parts = String(opticommand::Config::Instance().CommandUri).Split(":", 2);
+	vector<string> parts = String(opticommand::Config::Instance().MasterAddress).Split(":", 2);
 	host = parts[0];
 
 	if (parts.size() == 1)
@@ -673,7 +673,7 @@ Application::PrintJob(command::Job const &job)
 		     << bullet << "Last update:  " << Ansi::None << FormatDate(updated) << endl
 		     << bullet << "Progress:     " << Ansi::None << fixed << setprecision(2) << pgs << " %" << endl << endl
 		     << bullet << "Runtime:      " << Ansi::None << job.runtime() << endl
-		     << bullet << "Tasks:        " << Ansi::None << job.taskssuccess() << "/" << job.tasksfailed() << endl;
+		     << bullet << "Tasks:        " << Ansi::None << Ansi::Green << job.taskssuccess() << Ansi::None << "/" << Ansi::Red << job.tasksfailed() << Ansi::None << " (" << Ansi::Green << "success" << Ansi::None << "/" << Ansi::Red << "failed" << Ansi::None << ")" << endl;
 	}
 	else
 	{

@@ -11,7 +11,7 @@ namespace opticommand
 		static Config *s_instance;
 
 		public:
-			Glib::ustring CommandUri;
+			Glib::ustring MasterAddress;
 			bool DisableColors;
 			bool Raw;
 
