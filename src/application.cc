@@ -673,7 +673,7 @@ Application::PrintJob(command::Job const &job)
 		     << bullet << "Last update:  " << Ansi::None << FormatDate(updated) << endl
 		     << bullet << "Progress:     " << Ansi::None << fixed << setprecision(2) << pgs << " %" << endl << endl
 		     << bullet << "Runtime:      " << Ansi::None << job.runtime() << endl
-		     << bullet << "Tasks:        " << Ansi::None << job.taskssuccess() << "/" << job.tasksfailed() << endl;
+		     << bullet << "Tasks:        " << Ansi::None << Ansi::Green << job.taskssuccess() << Ansi::None << "/" << Ansi::Red << job.tasksfailed() << Ansi::None << " (" << Ansi::Green << "success" << Ansi::None << "/" << Ansi::Red << "failed" << Ansi::None << ")" << endl;
 	}
 	else
 	{
