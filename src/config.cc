@@ -12,12 +12,12 @@ Config::Config()
 	stringstream s;
 	s << "localhost:" << optimization::Constants::CommandPort;
 
-	CommandUri = s.str();
+	MasterAddress = s.str();
 
 	DisableColors = false;
 	Raw = false;
 
-	Register("command uri", CommandUri);
+	Register("master address", MasterAddress);
 	Register("disable colors", DisableColors);
 	Register("raw", Raw);
 }

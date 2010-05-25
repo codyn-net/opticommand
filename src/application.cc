@@ -549,11 +549,11 @@ Application::ParseArguments(int    &argc,
 	Glib::OptionGroup group("Command", "Optimization Commander");
 
 	Glib::OptionEntry command;
-	command.set_long_name("command-uri");
-	command.set_short_name('c');
-	command.set_description("Command uri");
+	command.set_long_name("master");
+	command.set_short_name('m');
+	command.set_description("The master hostname[:port] to connect to");
 
-	group.add_entry(command, config.CommandUri);
+	group.add_entry(command, config.MasterAddress);
 
 	Glib::OptionEntry send;
 	send.set_long_name("send");
@@ -621,7 +621,7 @@ void
 Application::ParseUri(string &host,
                       string &port)
 {
-	vector<string> parts = String(opticommand::Config::Instance().CommandUri).Split(":", 2);
+	vector<string> parts = String(opticommand::Config::Instance().MasterAddress).Split(":", 2);
 	host = parts[0];
 
 	if (parts.size() == 1)
