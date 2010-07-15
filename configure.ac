@@ -1,4 +1,4 @@
-AC_INIT(opticommand, 2.1)
+AC_INIT(opticommand, 2.2)
 
 AM_INIT_AUTOMAKE([subdir-objects])
 
@@ -22,7 +22,7 @@ AC_CONFIG_HEADERS(config.h)
 AM_MAINTAINER_MODE
 
 PKG_CHECK_MODULES(PACKAGE_OPTICOMMAND, [
-	liboptimization-2.0
+	liboptimization-2.0 >= 2.2
 ])
 
 AC_SUBST(PACKAGE_OPTICOMMAND_CFLAGS)
