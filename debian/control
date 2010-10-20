@@ -5,9 +5,9 @@ Build-Depends: debhelper (>= 7),
                autotools-dev,
                cdbs,
                pkg-config,
-               liboptimization2-dev,
+               liboptimization2-dev (>= 2.2),
                libglibmm-2.4-dev,
-               libreadline5-dev,
+               libreadline-dev,
                libgcrypt11-dev
 Standards-Version: 3.8.0
 Section: libs
@@ -16,7 +16,7 @@ Homepage: http://birg.epfl.ch
 Package: opticommand
 Section: science
 Architecture: any
-Depends: ${shlibs:Depends}, ${misc:Depends} liboptimization2 (>= 2.0)
+Depends: ${shlibs:Depends}, ${misc:Depends} liboptimization2 (>= 2.2)
 Conflicts: liboptimization0-applications-opticommand
 Replaces: liboptimization0-applications-opticommand
 Description: liboptimization command application
