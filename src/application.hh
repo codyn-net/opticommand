@@ -21,6 +21,7 @@ namespace opticommand
 				Kill,
 				SetPriority,
 				Authenticate,
+				Progress,
 				Quit,
 				Exit,
 				Help,
@@ -98,12 +99,16 @@ namespace opticommand
 			bool HandleSetPriority(std::vector<std::string> const &args, std::string &data);
 			bool HandleAuthenticate(std::vector<std::string> const &args, std::string &data);
 			bool HandleHelp(std::vector<std::string> const &args, std::string &data);
+			bool HandleProgress(std::vector<std::string> const &args, std::string &data);
 
 			bool HandleQuit(std::vector<std::string> const &args, std::string &data);
 
 			void ShowInfo(optimization::messages::command::InfoResponse const &response);
 			void ShowList(optimization::messages::command::ListResponse const &response);
 			void Authenticate(optimization::messages::command::AuthenticateResponse const &response);
+			void ShowProgress(optimization::messages::command::ProgressResponse const &response);
+			void ShowProgressRaw(optimization::messages::command::ProgressResponse const &response);
+			void ShowProgressArt(optimization::messages::command::ProgressResponse const &response);
 
 			void PrintJob(optimization::messages::command::Job const &job);
 
