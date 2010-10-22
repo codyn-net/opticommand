@@ -921,6 +921,12 @@ Application::ShowProgress(command::ProgressResponse const &response)
 }
 
 void
+Application::ShowIdle(command::IdleResponse const &response)
+{
+	cout << response.seconds() << endl;
+}
+
+void
 Application::ShowInfo(command::InfoResponse const &response)
 {
 	PrintJob(response.job());
