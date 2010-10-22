@@ -15,6 +15,8 @@
 #include <unistd.h>
 #include <iomanip>
 
+#include <cmath>
+
 #include "config.hh"
 
 using namespace std;
@@ -155,6 +157,34 @@ Application::HandleHelp(vector<string> const &args,
 }
 
 bool
+Application::HandleProgress(vector<string> const &args,
+                            string               &data)
+{
+	command::Command cmd;
+	stringstream idstream(args[0]);
+	size_t id;
+
+	idstream >> id;
+
+	cmd.set_type(command::Progress);
+	cmd.mutable_progress()->set_id(id);
+
+	return SendCommand(cmd, data);
+}
+
+bool
+Application::HandleIdle(vector<string> const &args,
+                        string               &data)
+{
+	command::Command cmd;
+
+	cmd.set_type(command::Idle);
+	cmd.mutable_idle();
+
+	return SendCommand(cmd, data);
+}
+
+bool
 Application::HandleInfo(vector<string> const &args,
                         string               &data)
 {
@@ -271,6 +301,8 @@ void Application::InitCommands()
 {
 	d_commands[Commands::List] = Command("list", &Application::HandleList, 0, 0);
 	d_commands[Commands::Info] = Command("info", &Application::HandleInfo, 1, 1);
+	d_commands[Commands::Progress] = Command("progress", &Application::HandleProgress, 1, 1);
+	d_commands[Commands::Idle] = Command("idle", &Application::HandleIdle, 0, 0);
 
 	d_commands[Commands::Kill] = Command("kill", &Application::HandleKill, 1, 1);
 	d_commands[Commands::SetPriority] = Command("set-priority", &Application::HandleSetPriority, 2, 2);
@@ -498,6 +530,18 @@ Application::OnData(FileDescriptor::DataArgs &args)
 					if (r.has_authenticate())
 					{
 						Authenticate(r.authenticate());
+					}
+				break;
+				case command::Progress:
+					if (r.has_progress())
+					{
+						ShowProgress(r.progress());
+					}
+				break;
+				case command::Idle:
+					if (r.has_idle())
+					{
+						ShowIdle(r.idle());
 					}
 				break;
 				default:
@@ -736,6 +780,150 @@ Application::SendCommand(command::Command &command,
 	d_client.Write(serialized);
 
 	return true;
+}
+
+void
+Application::ShowProgressRaw(command::ProgressResponse const &response)
+{
+	for (int i = 0; i < response.fitnesses_size(); ++i)
+	{
+		task::Identify::Fitness const &fit = response.fitnesses(i);
+
+		if (i != 0)
+		{
+			cout << "\t";
+		}
+
+		cout << fit.name() << "\t" << fit.type();
+	}
+
+	cout << endl;
+
+	for (int i = 0; i < response.items_size(); ++i)
+	{
+		task::Progress const &pgs = response.items(i);
+
+		cout << pgs.tick();
+
+		for (int j = 0; j < pgs.terms_size(); ++j)
+		{
+			task::Progress::Term const &term = pgs.terms(j);
+			cout << "\t" << term.best() << "\t" << term.mean();
+		}
+
+		cout << endl;
+	}
+}
+
+void
+Application::ShowProgressArt(command::ProgressResponse const &response)
+{
+	if (response.items_size() == 0)
+	{
+		return;
+	}
+
+	size_t nrows = 15;
+	size_t ncols = 70;
+
+	double maxval = 0;
+	double minval = 0;
+
+	vector<vector<size_t> > marks;
+	marks.resize(nrows);
+
+	size_t maxtick = response.items(response.items_size() - 1).tick();
+
+	if (maxtick < ncols)
+	{
+		ncols = maxtick;
+	}
+
+	for (int i = 0; i < response.items_size(); ++i)
+	{
+		task::Progress const &pgs = response.items(i);
+		double val = pgs.terms(0).best();
+
+		if (i == 0 || val > maxval)
+		{
+			maxval = val;
+		}
+
+		if (i == 0 || val < minval)
+		{
+			minval = val;
+		}
+	}
+
+	double meanval = 0;
+	size_t prevcol = 0;
+	size_t numval = 0;
+
+	for (int i = 0; i < response.items_size(); ++i)
+	{
+		task::Progress const &pgs = response.items(i);
+		double val = pgs.terms(0).best();
+
+		size_t col = (size_t)round(pgs.tick() / (double)maxtick * (ncols - 1));
+
+		if (i == 0 || col == prevcol)
+		{
+			meanval += val;
+			++numval;
+		}
+		else
+		{
+			meanval /= numval;
+
+			size_t row = nrows - (size_t)round((meanval - minval) / (maxval - minval) * (nrows - 1)) - 1;
+			marks[row].push_back(col);
+
+			numval = 1;
+			meanval = val;
+		}
+
+		prevcol = col;
+	}
+
+	for (size_t i = 0; i < marks.size(); ++i)
+	{
+		// Output row in fact
+		vector<size_t> const &row = marks[i];
+		size_t prev = -1;
+
+		cout << "|";
+
+		for (size_t j = 0; j < row.size(); ++j)
+		{
+			size_t num = row[j];
+
+			cout << string(num - prev - 1, ' ') << '*';
+			prev = num;
+		}
+
+		cout << endl;
+	}
+
+	cout << "+" << string(ncols, '-') << endl;
+}
+
+void
+Application::ShowProgress(command::ProgressResponse const &response)
+{
+	if (Config::Instance().Raw)
+	{
+		ShowProgressRaw(response);
+	}
+	else
+	{
+		ShowProgressArt(response);
+	}
+}
+
+void
+Application::ShowIdle(command::IdleResponse const &response)
+{
+	cout << response.seconds() << endl;
 }
 
 void
