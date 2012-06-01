@@ -1,3 +1,10 @@
+opticommand (2.4-1) precise; urgency=low
+
+  * Updated control and rules for autogen.sh generation
+  * New upstream version 2.4
+
+ -- Alexandre Tuleu <alexandre.tuleu.2005@polytechnique.org>  Fri, 01 Jun 2012 11:47:38 +0200
+
 opticommand (2.3-1) UNRELEASED; urgency=low
 
   * New upstream release
@@ -6,7 +13,7 @@ opticommand (2.3-1) UNRELEASED; urgency=low
 
 opticommand (2.2-1) UNRELEASED; urgency=low
 
-  * New upstream release 
+  * New upstream release
 
  -- Jesse van den Kieboom <jvanden@grijpc10.epfl.ch>  Thu, 15 Jul 2010 20:03:02 +0200
 
@@ -18,13 +25,13 @@ opticommand (2.1-1) UNRELEASED; urgency=low
 
 opticommand (2.0-1) UNRELEASED; urgency=low
 
-  * New upstream release 2.0 
+  * New upstream release 2.0
 
  -- Jesse van den Kieboom <jvanden@grijpc10.epfl.ch>  Fri, 09 Apr 2010 16:04:29 +0200
 
 opticommand (0.2-1) UNRELEASED; urgency=low
 
-  * New upstream release 0.2 
+  * New upstream release 0.2
 
  -- Jesse van den Kieboom <jvanden@grijpc10.epfl.ch>  Tue, 08 Sep 2009 16:51:12 +0200
 

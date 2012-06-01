@@ -8,7 +8,8 @@ Build-Depends: debhelper (>= 7),
                liboptimization2-dev (>= 2.2),
                libglibmm-2.4-dev,
                libreadline-dev,
-               libgcrypt11-dev
+               libgcrypt11-dev,
+               libtool
 Standards-Version: 3.8.0
 Section: libs
 Homepage: http://birg.epfl.ch
