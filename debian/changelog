@@ -1,4 +1,4 @@
-opticommand (2.4-1) precise; urgency=low
+opticommand (2.4-1) UNRELEASED; urgency=low
 
   * Updated control and rules for autogen.sh generation
   * New upstream version 2.4
