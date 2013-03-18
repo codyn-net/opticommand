@@ -1,3 +1,10 @@
+opticommand (2.5-1) UNRELEASED; urgency=low
+
+  * New upstream release
+  * Link against latest libjessevdk
+
+ -- Jesse van den Kieboom <jesse.vandenkieboom@epfl.ch>  Mon, 18 Mar 2013 09:33:49 +0100
+
 opticommand (2.4-1) UNRELEASED; urgency=low
 
   * Updated control and rules for autogen.sh generation
