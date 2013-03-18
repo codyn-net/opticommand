@@ -1,4 +1,4 @@
-AC_INIT(opticommand, 2.4)
+AC_INIT(opticommand, 2.5)
 
 AM_INIT_AUTOMAKE([subdir-objects])
 
